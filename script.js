@@ -1,99 +1,147 @@
-/*
-      Fynas es un simulador de finanzas personales que permite registrar
-      ingresos y gastos de forma simple. Su objetivo es ayudar al usuario a
-      visualizar su saldo disponible y gestionar mejor su dinero. Esta versión
-      inicial funciona por consola y permite interactuar con el usuario mediante
-      cuadros de diálogo.
-*/
+// -----------------------------------------
+// index.js - Controlador principal de Fynas
+// -----------------------------------------
+// Este archivo maneja la interacción con el usuario
+// mediante menús según el estado de sesión.
+// Llama a las funciones definidas en funciones.js para operar.
 
-// VARIABLES GLOBALES
-let usuarios = [];
-let sessionActive = false;
-//Funcion para mostrar usuarios registrados
+import {
+  mostrarUsuarios,
+  registrarUsuario,
+  verificarUsuario,
+  cerrarSesion,
+  registrarMovimiento,
+  verHistorial,
+  calcularSaldo,
+  obtenerEstadoSesion,
+} from "./funciones.js";
 
-const mostrarUsuarios = () => {
-  return usuarios.map((user) => `${user.userName}\n`);
+// Función que muestra el menú según si hay sesión activa
+const mostrarMenu = () => {
+  const { sessionActive } = obtenerEstadoSesion();
+
+  let opciones = sessionActive
+    ? "1. Registrar ingreso\n2. Registrar gasto\n3. Ver historial\n4. Ver saldo\n5. Cerrar sesión\n6. Salir"
+    : "1. Registrarme\n2. Iniciar Sesión\n3. Mostrar Usuarios\n4. Salir";
+
+  return parseInt(prompt("Ingrese la opción deseada:\n" + opciones));
 };
 
-// Función para registrar un nuevo usuario
-const registrarUsuario = (userName, password) => {
-  //Verificar si los campos están completos
-  if (verificarCamposVacios([userName, password])) {
-    return "Todos los campos son obligatorios.! Vuelve a intentarlo";
-  }
+// Inicio del programa: se muestra el menú
+let opcion = mostrarMenu();
 
-  //Verifica si el usuario existe
-  const userExists = usuarios.some((user) => user.userName === userName);
-  if (userExists) {
-    return "El usuario ya existe. Intenta con otro nombre de usuario.";
-  }
+// Bucle principal del programa
+while (true) {
+  const { sessionActive } = obtenerEstadoSesion();
 
-  //Agrega el nuevo ususario
-  usuarios.push({ userName, password });
-  return `Usuario ${userName} registrado exitosamente.`;
-};
-
-const verificarCamposVacios = (campos) => {
-  return campos.some((campo) => campo === "");
-};
-
-const verificarUsuario = (dataUser) => {
-  const { userName, password } = dataUser;
-  if (verificarCamposVacios([userName, password])) {
-    return "Todos los campos son obligatorios.! Vuelve a intentarlo";
-  }
-
-  const userExists = usuarios.some(
-    (user) => user.userName === userName && user.password === password
-  );
-
-  if (userExists) {
-    alert(`Bienvenido ${userName}!`);
-    return true;
-  } else {
-    alert("Usuario o contraseña incorrectos.");
-    return false;
-  }
-};
-
-//Menú de opciones
-let opcionUser = parseInt(
-  prompt(
-    "Ingrese la opción deseada:\n1. Registrarme\n2. Iniciar Sesión\n3. Mostrar Usuarios\n5. Salir"
-  )
-);
-
-while (opcionUser != 5) {
-  switch (opcionUser) {
-    case 1:
-      {
-        const userName = prompt("Nombre de usuario: ");
-        const password = prompt("Contraseña: ");
-        const mensajeRegistro = registrarUsuario(userName, password);
-        alert(mensajeRegistro);
+  // Si NO hay sesión activa
+  if (!sessionActive) {
+    switch (opcion) {
+      case 1: {
+        // Registrar nuevo usuario
+        const newUser = prompt("Nombre de usuario:");
+        const newPass = prompt("Contraseña:");
+        alert(registrarUsuario(newUser, newPass));
+        break;
       }
-      break;
-    case 2:
-      {
-        const userName = prompt("Nombre de usuario: ");
-        const password = prompt("Contraseña: ");
-        const mensajeLogin = verificarUsuario({ userName, password });
-        if (typeof mensajeLogin === "string") {
-          alert(mensajeLogin);
+      case 2: {
+        // Iniciar sesión
+        const loginUser = prompt("Nombre de usuario:");
+        const loginPass = prompt("Contraseña:");
+        const loginExitoso = verificarUsuario({
+          userName: loginUser,
+          password: loginPass,
+        });
+        if (loginExitoso) {
+          alert(`Bienvenido ${loginUser}!`);
+          opcion = mostrarMenu(); // Actualiza el menú tras iniciar sesión
+          continue; // Vuelve al inicio del bucle con sesión activa
+        } else {
+          alert("Usuario o contraseña incorrectos.");
         }
+        break;
       }
-      break;
-    case 3:
-      if (usuarios.length == 0) {
-        alert("No existen usuarios registrados!");
-      } else {
-        alert(`Usuarios Registrados: \n ${mostrarUsuarios()}`);
+      case 3:
+        // Mostrar usuarios registrados
+        alert(mostrarUsuarios() || "No hay usuarios registrados.");
+        break;
+      case 4:
+        // Salir del sistema
+        alert("Gracias por usar Fynas!");
+        break;
+      default:
+        alert("Opción inválida.");
+    }
+
+    if (opcion === 4) break; // Finaliza el programa si se eligió salir
+  } else {
+    // Si HAY sesión activa
+    switch (opcion) {
+      case 1: {
+        // Registrar ingreso
+        const descIngreso = prompt("Descripción del ingreso:");
+        const montoIngreso = parseFloat(prompt("Monto:"));
+        if (isNaN(montoIngreso) || montoIngreso <= 0) {
+          alert("Monto inválido.");
+        } else {
+          registrarMovimiento("ingreso", descIngreso, montoIngreso);
+          alert("Ingreso registrado.");
+        }
+        break;
       }
-      break;
+      case 2: {
+        // Registrar gasto
+        const descGasto = prompt("Descripción del gasto:");
+        const montoGasto = parseFloat(prompt("Monto:"));
+        if (isNaN(montoGasto) || montoGasto <= 0) {
+          alert("Monto inválido.");
+        } else {
+          registrarMovimiento("gasto", descGasto, montoGasto);
+          alert("Gasto registrado.");
+        }
+        break;
+      }
+      case 3: {
+        // Ver historial de movimientos
+        const historial = verHistorial();
+        if (historial.length === 0) {
+          alert("No hay movimientos aún.");
+        } else {
+          alert(
+            historial
+              .map(
+                (m) =>
+                  `${m.fecha} - ${m.tipo.toUpperCase()}: ${m.descripcion} ($ ${
+                    m.monto
+                  })`
+              )
+              .join("\n")
+          );
+        }
+        break;
+      }
+      case 4: {
+        // Ver saldo actual
+        const saldo = calcularSaldo();
+        alert(`Saldo actual: $ ${saldo}`);
+        break;
+      }
+      case 5:
+        // Cerrar sesión
+        cerrarSesion();
+        alert("Sesión cerrada.");
+        break;
+      case 6:
+        // Salir del sistema
+        alert("Gracias por usar Fynas!");
+        break;
+      default:
+        alert("Opción inválida.");
+    }
+
+    if (opcion === 6 || opcion === 5) break; // Terminar si se sale o cierra sesión
   }
-  opcionUser = parseInt(
-    prompt(
-      "Ingrese la opción deseada:\n1. Registrarme\n2. Iniciar Sesión\n3. Mostrar Usuarios\n5. Salir"
-    )
-  );
+
+  // Mostrar menú nuevamente en el siguiente ciclo
+  opcion = mostrarMenu();
 }
